@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Security Quest!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Nunito:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            /* A fun, game-like background */
+            background-color: #5C9A36; /* Grass green */
+            background-image: linear-gradient(180deg, #64BA3A 0%, #64BA3A 40%, #754D29 40%, #5C3A21 100%);
+            min-height: 100vh;
+            font-family: 'Nunito', sans-serif;
+            color: #333;
+        }
+
+        h1, h2, .pixel-font {
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+        }
+
+        /* Minecraft-style blocky buttons */
+        .mc-button {
+            background-color: #8B8B8B;
+            border: 4px solid #333;
+            border-top-color: #C6C6C6;
+            border-left-color: #C6C6C6;
+            border-bottom-color: #555;
+            border-right-color: #555;
+            color: #111;
+            transition: transform 0.1s;
+        }
+        
+        .mc-button:hover {
+            background-color: #A0A0A0;
+            transform: scale(1.02);
+        }
+
+        .mc-button:active {
+            border-top-color: #555;
+            border-left-color: #555;
+            border-bottom-color: #C6C6C6;
+            border-right-color: #C6C6C6;
+            transform: scale(0.98);
+        }
+
+        .mc-container {
+            background-color: #C6C6C6;
+            border: 6px solid #333;
+            border-top-color: #FFF;
+            border-left-color: #FFF;
+            border-bottom-color: #555;
+            border-right-color: #555;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div id="game-container" class="mc-container w-full max-w-3xl p-6 md:p-10 relative">
+        
+        <!-- Header: Score and Progress -->
+        <div class="flex justify-between items-center mb-6 border-b-4 border-gray-500 pb-4">
+            <div class="pixel-font text-3xl md:text-4xl text-yellow-300 drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                Score: <span id="score">0</span>
+            </div>
+            <div class="pixel-font text-2xl md:text-3xl text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)] bg-gray-800 px-4 py-1 rounded">
+                Level: <span id="question-number">1</span>/10
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-800 h-6 mb-8 border-2 border-black relative">
+            <div id="progress-bar" class="bg-green-500 h-full w-0 transition-all duration-500"></div>
+        </div>
+
+        <!-- Question Area -->
+        <div id="question-screen">
+            <h2 id="question-text" class="text-2xl md:text-3xl font-bold mb-8 text-center leading-snug">
+                Loading question...
+            </h2>
+
+            <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+
+        <!-- Feedback Overlay (Hidden by default) -->
+        <div id="feedback-modal" class="hidden absolute inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center p-6 text-center z-10">
+            <h2 id="feedback-title" class="pixel-font text-5xl mb-4 drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">Correct!</h2>
+            <p id="feedback-rationale" class="text-white text-xl md:text-2xl mb-8 max-w-xl">Rationale goes here.</p>
+            <button onclick="nextQuestion()" class="mc-button text-2xl px-8 py-4 font-bold">Continue ➔</button>
+        </div>
+
+        <!-- End Screen (Hidden by default) -->
+        <div id="end-screen" class="hidden text-center pop-in">
+            <h1 class="pixel-font text-5xl md:text-6xl text-yellow-300 drop-shadow-[3px_3px_0_rgba(0,0,0,1)] mb-4">Quest Complete!</h1>
+            <p class="text-2xl mb-6">You are a Cyber Security Master!</p>
+            <div class="pixel-font text-4xl mb-8 text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)] bg-gray-800 inline-block px-6 py-3 rounded">
+                Final Score: <span id="final-score">0</span> / 100
+            </div>
+            <br>
+            <button onclick="startGame()" class="mc-button text-2xl px-8 py-4 font-bold text-green-800 border-green-500">Play Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "Another player promises to build you a massive diamond castle, but only if you give them your account password. What should you do?",
+                options: [
+                    { text: "Give them the password, but change it right after.", isCorrect: false },
+                    { text: "Say NO, take a screenshot, and report the player.", isCorrect: true, rationale: "You should never trade your password for items or favors. A real friend would never ask for your password!" },
+                    { text: "Give them a fake password to trick them.", isCorrect: false },
+                    { text: "Ask them to give you their password first.", isCorrect: false }
+                ]
+            },
+            {
+                question: "Which of these is the SAFEST username to choose when joining a brand new public server?",
+                options: [
+                    { text: "StandleyNY2018", isCorrect: false },
+                    { text: "Standley_At_School", isCorrect: false },
+                    { text: "DiamondMiner99", isCorrect: true, rationale: "This is a great username! It uses your interests in the game but keeps your real identity completely secret." },
+                    { text: "BrooklynBoyStandley", isCorrect: false }
+                ]
+            },
+            {
+                question: "A new friend you met online asks what street you live on so they can build a replica of your house. What is the safest response?",
+                options: [
+                    { text: "Tell them the street, but not the house number.", isCorrect: false },
+                    { text: "Tell them your exact address so the house is accurate.", isCorrect: false },
+                    { text: "Give them the address of your school instead.", isCorrect: false },
+                    { text: "Tell them you can't share personal info, and build a made-up house together instead.", isCorrect: true, rationale: "This keeps your PII (Personally Identifiable Information) safe while still allowing you to have fun playing!" }
+                ]
+            },
+            {
+                question: "A player is constantly destroying your builds and calling you mean names in the chat. What is the best way to handle this cyberbully?",
+                options: [
+                    { text: "Ignore them, take a screenshot, log off, and tell a trusted adult.", isCorrect: true, rationale: "Documenting the bullying and getting an adult involved is the safest and most effective way to handle a bully." },
+                    { text: "Destroy their builds and call them mean names back.", isCorrect: false },
+                    { text: "Keep playing and just let them destroy your things.", isCorrect: false },
+                    { text: "Tell everyone else on the server to attack the bully.", isCorrect: false }
+                ]
+            },
+            {
+                question: "What does it mean to be an 'Upstander' in a digital world?",
+                options: [
+                    { text: "Someone who stands up while playing video games.", isCorrect: false },
+                    { text: "Someone who watches another player get bullied but does nothing.", isCorrect: false },
+                    { text: "Someone who stays up all night playing Minecraft.", isCorrect: false },
+                    { text: "Someone who sees bullying happen and speaks up or helps.", isCorrect: true, rationale: "Upstanders use their voice to support others, report bad behavior, and make the digital world a kinder place!" }
+                ]
+            },
+            {
+                question: "You find a sign in the game that says: 'Click this link to download a mod that gives you unlimited diamonds!' Why is this dangerous?",
+                options: [
+                    { text: "It might give you too many diamonds and crash your game.", isCorrect: false },
+                    { text: "It could be a trick (phishing) to download malware or steal your info.", isCorrect: true, rationale: "Scammers use promises of free items to trick you into clicking links that infect your computer with viruses." },
+                    { text: "It is completely safe as long as the sign is written in English.", isCorrect: false },
+                    { text: "It might accidentally turn off your computer.", isCorrect: false }
+                ]
+            },
+            {
+                question: "What happens to the messages you type into a public multiplayer server chat?",
+                options: [
+                    { text: "They become part of your Digital Footprint and can be saved or read by admins.", isCorrect: true, rationale: "Everything you type online leaves a permanent trail. Only type things you would be okay with a teacher or parent reading." },
+                    { text: "They disappear forever as soon as you log off.", isCorrect: false },
+                    { text: "They are only seen by your friends.", isCorrect: false },
+                    { text: "They are automatically deleted if they have bad words.", isCorrect: false }
+                ]
+            },
+            {
+                question: "You meet someone online who says they are an 8-year-old kid too, but they keep asking you very personal questions about your family. What could be happening?",
+                options: [
+                    { text: "They are just a really curious friend.", isCorrect: false },
+                    { text: "They want to send your family a present.", isCorrect: false },
+                    { text: "The person might be lying about who they are to get your personal information.", isCorrect: true, rationale: "It is very easy to lie about your age and identity on the internet. Never share personal details with a stranger." },
+                    { text: "They are doing a school project.", isCorrect: false }
+                ]
+            },
+            {
+                question: "You see a really cool Minecraft skin that another player made online. You download it. When someone asks who made it, what should you say?",
+                options: [
+                    { text: "'I made it all by myself!'", isCorrect: false },
+                    { text: "'It's a secret.'", isCorrect: false },
+                    { text: "'I found it online. Another creator made it.'", isCorrect: true, rationale: "A good digital citizen respects other people's creative work and gives credit where it is due." },
+                    { text: "'I paid Microsoft to make it for me.'", isCorrect: false }
+                ]
+            },
+            {
+                question: "You have been playing for 4 hours. Your eyes hurt and your mom is calling you for dinner, but you want to finish the level. What should you do?",
+                options: [
+                    { text: "Ignore your mom and keep playing.", isCorrect: false },
+                    { text: "Save the game, log off safely, and go eat dinner.", isCorrect: true, rationale: "Part of digital citizenship is finding a healthy balance between screen time and real-life activities with your family." },
+                    { text: "Yell that you need 10 more minutes.", isCorrect: false },
+                    { text: "Bring the computer to the dinner table.", isCorrect: false }
+                ]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // DOM Elements
+        const questionScreen = document.getElementById('question-screen');
+        const endScreen = document.getElementById('end-screen');
+        const questionText = document.getElementById('question-text');
+        const optionsGrid = document.getElementById('options-grid');
+        const scoreDisplay = document.getElementById('score');
+        const questionNumberDisplay = document.getElementById('question-number');
+        const progressBar = document.getElementById('progress-bar');
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackRationale = document.getElementById('feedback-rationale');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const gameContainer = document.getElementById('game-container');
+
+        function startGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreDisplay.innerText = score;
+            endScreen.classList.add('hidden');
+            questionScreen.classList.remove('hidden');
+            
+            // Shuffle questions (optional, but keeps it fresh)
+            quizData.sort(() => Math.random() - 0.5);
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionText.innerText = currentQuestion.question;
+            questionNumberDisplay.innerText = currentQuestionIndex + 1;
+            
+            // Update progress bar
+            const progress = (currentQuestionIndex / quizData.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Clear previous options
+            optionsGrid.innerHTML = '';
+
+            // Shuffle options so correct answer isn't always in the same spot
+            const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'mc-button p-4 text-lg md:text-xl font-bold text-left rounded shadow-sm';
+                button.innerText = option.text;
+                button.onclick = () => handleAnswer(option, button);
+                optionsGrid.appendChild(button);
+            });
+        }
+
+        function handleAnswer(option, buttonElement) {
+            // Find the correct option to get the rationale
+            const correctOption = quizData[currentQuestionIndex].options.find(opt => opt.isCorrect);
+            
+            if (option.isCorrect) {
+                // Correct Answer!
+                score += 10;
+                scoreDisplay.innerText = score;
+                
+                feedbackTitle.innerText = "⭐ CORRECT! ⭐";
+                feedbackTitle.className = "pixel-font text-5xl md:text-6xl mb-4 text-green-400 drop-shadow-[3px_3px_0_rgba(0,0,0,1)]";
+                
+                // Add a little pop animation to the whole container
+                gameContainer.classList.remove('pop-in');
+                void gameContainer.offsetWidth; // trigger reflow
+                gameContainer.classList.add('pop-in');
+            } else {
+                // Wrong Answer!
+                feedbackTitle.innerText = "❌ OH NO! ❌";
+                feedbackTitle.className = "pixel-font text-5xl md:text-6xl mb-4 text-red-500 drop-shadow-[3px_3px_0_rgba(0,0,0,1)]";
+                
+                // Shake the container
+                gameContainer.classList.add('shake');
+                setTimeout(() => {
+                    gameContainer.classList.remove('shake');
+                }, 400);
+            }
+
+            // Always show the rationale from the correct option so they learn
+            let explanation = correctOption.rationale;
+            if (!explanation) explanation = "Remember to stay safe online!";
+            feedbackRationale.innerText = explanation;
+
+            // Show modal
+            feedbackModal.classList.remove('hidden');
+            feedbackModal.classList.add('pop-in');
+        }
+
+        function nextQuestion() {
+            feedbackModal.classList.add('hidden');
+            feedbackModal.classList.remove('pop-in');
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function showEndScreen() {
+            questionScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+            finalScoreDisplay.innerText = score;
+            progressBar.style.width = '100%';
+            
+            // Fun little message based on score
+            const messageEl = endScreen.querySelector('p');
+            if(score === 100) {
+                messageEl.innerText = "Perfect! You are a Cyber Security Master! 🏆";
+            } else if (score >= 70) {
+                messageEl.innerText = "Great job! You know how to stay safe online! 🛡️";
+            } else {
+                messageEl.innerText = "Good try! Remember these tips for next time! 💡";
+            }
+        }
+
+        // Initialize game on load
+        startGame();
+    </script>
+</body>
+</html>
